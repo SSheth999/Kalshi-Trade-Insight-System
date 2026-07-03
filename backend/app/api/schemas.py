@@ -1,0 +1,76 @@
+from typing import Literal
+
+from pydantic import BaseModel, Field
+
+
+class IngestRequest(BaseModel):
+    through: int = Field(default=4, ge=1, le=4, description="Run through phase N")
+    min_volume: float | None = Field(default=None, gt=0)
+    top_k: int | None = Field(default=None, ge=1)
+    max_series_to_score: int | None = Field(default=None, ge=1)
+    concurrency: int | None = Field(default=None, ge=1)
+    lookback_days: int | None = Field(default=None, ge=1)
+    period_interval: Literal[1, 60, 1440] | None = None
+    max_markets_per_series: int | None = Field(default=None, ge=1)
+    candlestick_concurrency: int | None = Field(default=None, ge=1)
+    persist: bool = Field(
+        default=False,
+        description="Write JSON artifacts to data/ (universe, rankings, history)",
+    )
+
+
+class RankedSeriesSummary(BaseModel):
+    ticker: str
+    title: str
+    score: float
+    open_market_count: int
+    max_1d_move: float
+    avg_spread: float
+    total_vol24: float
+
+
+class Phase1Summary(BaseModel):
+    min_volume: float
+    total_series_fetched: int
+    series_passing_volume_filter: int
+
+
+class Phase2Summary(BaseModel):
+    top_k: int
+    series_scored: int
+    series_skipped_no_open_markets: int
+    markets_cached: int
+    ranked_series: list[RankedSeriesSummary]
+
+
+class Phase3Summary(BaseModel):
+    top_k: int
+    series_count: int
+    total_markets: int
+
+
+class SeriesHistorySummary(BaseModel):
+    series_ticker: str
+    market_count: int
+    candlestick_count: int
+
+
+class Phase4Summary(BaseModel):
+    lookback_days: int
+    period_interval: int
+    max_markets_per_series: int
+    markets_fetched: int
+    candlestick_count: int
+    markets_failed_count: int
+    series: list[SeriesHistorySummary]
+
+
+class IngestResponse(BaseModel):
+    status: Literal["completed"] = "completed"
+    through: int
+    duration_seconds: float
+    phase_1: Phase1Summary
+    phase_2: Phase2Summary | None = None
+    phase_3: Phase3Summary | None = None
+    phase_4: Phase4Summary | None = None
+    artifacts: list[str] = Field(default_factory=list)

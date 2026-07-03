@@ -1,4 +1,5 @@
 import importlib
+from datetime import datetime, timezone
 
 import pytest
 from types import SimpleNamespace
@@ -12,10 +13,18 @@ from app.etl.phases.phase_02_score.volatility import (
     composite_score,
     to_ranked,
 )
+from app.etl.phases.phase_03_collect import collect_markets
+from app.etl.phases.phase_04_history.routing import (
+    candles_per_market,
+    iter_time_windows,
+    max_tickers_per_batch,
+)
+from app.etl.shared.markets_store import MarketsStore
 
 
 def _market(
     *,
+    ticker: str = "MKT-1",
     bid: str = "0.50",
     ask: str = "0.55",
     last: str = "0.52",
@@ -23,11 +32,17 @@ def _market(
     vol24: str = "1000.00",
 ):
     return SimpleNamespace(
+        ticker=ticker,
+        event_ticker="EVT-1",
+        title="Test Market",
+        status="open",
         yes_bid_dollars=bid,
         yes_ask_dollars=ask,
         last_price_dollars=last,
         previous_price_dollars=previous,
         volume_24h_fp=vol24,
+        open_interest_fp="500.00",
+        close_time=datetime(2026, 6, 21, tzinfo=timezone.utc),
     )
 
 
@@ -168,7 +183,7 @@ class TestPhase02Score:
         monkeypatch.setattr(score_module, "fetch_open_markets_for_series", fake_fetch)
 
         client = SimpleNamespace()
-        result = await run_score_series(
+        result, store = await run_score_series(
             client,
             candidates,
             top_k=2,
@@ -181,3 +196,74 @@ class TestPhase02Score:
         assert len(result.ranked_series) == 2
         assert result.ranked_series[0].ticker == "VOLATILE"
         assert result.ranked_series[0].score > result.ranked_series[1].score
+        assert len(store) == 2
+        assert len(store.get("VOLATILE")) == 1
+        assert len(store.get("QUIET")) == 1
+        assert store.get("EMPTY") == []
+
+
+class TestPhase03Collect:
+    def test_collect_markets_from_store(self):
+        store = MarketsStore()
+        store.put("VOLATILE", [_market(ticker="V1"), _market(ticker="V2")])
+        store.put("QUIET", [_market(ticker="Q1")])
+
+        from app.etl.phases.phase_02_score.models import (
+            RankedSeries,
+            SeriesRankingResult,
+            SeriesVolatilityMetrics,
+        )
+
+        metrics = SeriesVolatilityMetrics(
+            avg_spread=0.01,
+            max_1d_move=0.1,
+            mean_1d_move=0.05,
+            total_vol24=100.0,
+            open_market_count=2,
+        )
+        rankings = SeriesRankingResult(
+            top_k=1,
+            series_scored=2,
+            series_skipped_no_open_markets=0,
+            max_series_to_score=2,
+            ranked_series=[
+                RankedSeries(
+                    ticker="VOLATILE",
+                    title="Volatile",
+                    category="A",
+                    frequency="daily",
+                    volume=1000.0,
+                    score=5.0,
+                    metrics=metrics,
+                )
+            ],
+        )
+
+        collected = collect_markets(rankings, store)
+
+        assert collected.top_k == 1
+        assert len(collected.series) == 1
+        assert collected.series[0].series_ticker == "VOLATILE"
+        assert collected.series[0].market_count == 2
+        assert [m.ticker for m in collected.series[0].markets] == ["V1", "V2"]
+
+
+class TestPhase04Routing:
+    def test_candles_per_market_hourly_week(self):
+        start = 0
+        end = 7 * 86400
+        assert candles_per_market(start, end, 60) == 168
+
+    def test_max_tickers_per_batch_respects_candle_limit(self):
+        start = 0
+        end = 30 * 86400
+        assert max_tickers_per_batch(start, end, 60) == 13
+
+    def test_iter_time_windows_splits_long_ranges(self):
+        start = 0
+        period_seconds = 60 * 60
+        end = 10_001 * period_seconds
+        windows = list(iter_time_windows(start, end, 60))
+        assert len(windows) == 2
+        assert windows[0][0] == start
+        assert windows[-1][1] == end
