@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 
 from app.api.routes.pipeline import router as pipeline_router
+from app.api.routes.watcher import router as watcher_router
 
 app = FastAPI(
     title="Kalshi Trade Insight System",
@@ -9,6 +10,7 @@ app = FastAPI(
 )
 
 app.include_router(pipeline_router, prefix="/api/v1", tags=["pipeline"])
+app.include_router(watcher_router, prefix="/api/v1", tags=["watcher"])
 
 
 @app.get("/health")

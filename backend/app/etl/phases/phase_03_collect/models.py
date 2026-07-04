@@ -15,6 +15,14 @@ class MarketSnapshot(BaseModel):
     volume_24h_fp: str
     open_interest_fp: str
     close_time: datetime
+    # Rule text — used for resolution risk scoring and embeddings
+    rules_primary: str | None = None
+    rules_secondary: str | None = None
+    # Settlement / close metadata
+    can_close_early: bool | None = None
+    early_close_condition: str | None = None
+    settlement_timer_seconds: int | None = None
+    expected_expiration_time: datetime | None = None
 
 
 class SeriesMarkets(BaseModel):

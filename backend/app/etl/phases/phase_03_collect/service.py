@@ -7,11 +7,15 @@ from app.etl.phases.phase_03_collect.models import (
 from app.etl.shared.markets_store import MarketsStore
 
 
+def _getattr(obj, name: str, default=None):
+    return getattr(obj, name, default)
+
+
 def market_to_snapshot(market) -> MarketSnapshot:
     return MarketSnapshot(
         ticker=market.ticker,
         event_ticker=market.event_ticker,
-        title=getattr(market, "title", None),
+        title=_getattr(market, "title"),
         status=market.status,
         yes_bid_dollars=market.yes_bid_dollars,
         yes_ask_dollars=market.yes_ask_dollars,
@@ -20,6 +24,12 @@ def market_to_snapshot(market) -> MarketSnapshot:
         volume_24h_fp=market.volume_24h_fp,
         open_interest_fp=market.open_interest_fp,
         close_time=market.close_time,
+        rules_primary=_getattr(market, "rules_primary"),
+        rules_secondary=_getattr(market, "rules_secondary"),
+        can_close_early=_getattr(market, "can_close_early"),
+        early_close_condition=_getattr(market, "early_close_condition"),
+        settlement_timer_seconds=_getattr(market, "settlement_timer_seconds"),
+        expected_expiration_time=_getattr(market, "expected_expiration_time"),
     )
 
 

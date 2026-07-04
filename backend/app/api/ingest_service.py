@@ -2,6 +2,7 @@ import time
 from pathlib import Path
 
 from app.api.schemas import (
+    DbLoadSummary,
     IngestRequest,
     IngestResponse,
     Phase1Summary,
@@ -56,6 +57,7 @@ def build_ingest_response(
     through: int,
     duration_seconds: float,
     artifacts: list[str] | None = None,
+    db_load: DbLoadSummary | None = None,
 ) -> IngestResponse:
     """Build the ingest result after the pipeline is successfully run. wrapped in the endpoint response."""
     universe = result.universe
@@ -125,6 +127,7 @@ def build_ingest_response(
         phase_3=phase_3,
         phase_4=phase_4,
         artifacts=artifacts or [],
+        db_load=db_load,
     )
 
 
@@ -163,15 +166,30 @@ async def run_ingest(body: IngestRequest) -> IngestResponse:
             **params,
         )
 
+    duration = time.perf_counter() - started
+
     artifacts: list[str] = []
     if body.persist:
         artifacts = _persist_artifacts(result, through)
 
+    db_load_summary: DbLoadSummary | None = None
+    if body.persist_db:
+        from app.db.load import load_pipeline_result
+
+        counts = load_pipeline_result(
+            result,
+            through=through,
+            duration_seconds=duration,
+            params=_resolve_request(body),
+        )
+        db_load_summary = DbLoadSummary(**counts)
+
     return build_ingest_response(
         result,
         through=through,
-        duration_seconds=time.perf_counter() - started,
+        duration_seconds=duration,
         artifacts=artifacts,
+        db_load=db_load_summary,
     )
 
 

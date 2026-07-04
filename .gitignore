@@ -15,5 +15,8 @@ frontend/out/
 # Pipeline data
 backend/data/
 
+# Cursor local config
+.cursor/
+
 # OS
 .DS_Store

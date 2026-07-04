@@ -17,6 +17,10 @@ class IngestRequest(BaseModel):
         default=False,
         description="Write JSON artifacts to data/ (universe, rankings, history)",
     )
+    persist_db: bool = Field(
+        default=False,
+        description="Upsert pipeline result into Postgres/Supabase",
+    )
 
 
 class RankedSeriesSummary(BaseModel):
@@ -65,6 +69,14 @@ class Phase4Summary(BaseModel):
     series: list[SeriesHistorySummary]
 
 
+class DbLoadSummary(BaseModel):
+    run_id: str
+    series_upserted: int
+    markets_upserted: int
+    rankings_inserted: int
+    candlesticks_upserted: int
+
+
 class IngestResponse(BaseModel):
     status: Literal["completed"] = "completed"
     through: int
@@ -74,3 +86,4 @@ class IngestResponse(BaseModel):
     phase_3: Phase3Summary | None = None
     phase_4: Phase4Summary | None = None
     artifacts: list[str] = Field(default_factory=list)
+    db_load: DbLoadSummary | None = None

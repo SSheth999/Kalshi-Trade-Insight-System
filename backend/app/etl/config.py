@@ -21,6 +21,7 @@ class EtlSettings(BaseSettings):
     candlestick_concurrency: int = 2
     include_latest_before_start: bool = True
     data_dir: str = "data"
+    database_url: str | None = None
 
 
 settings = EtlSettings()
