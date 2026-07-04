@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -87,3 +88,33 @@ class IngestResponse(BaseModel):
     phase_4: Phase4Summary | None = None
     artifacts: list[str] = Field(default_factory=list)
     db_load: DbLoadSummary | None = None
+
+
+class LatestIngestResponse(BaseModel):
+    """Cached result of the most recent ingestion run (auto-run on startup, or manually triggered)."""
+
+    status: Literal["pending", "running", "ready", "error"]
+    result: IngestResponse | None = None
+    error: str | None = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+
+
+class MarketRow(BaseModel):
+    ticker: str
+    event_ticker: str | None = None
+    title: str | None = None
+    status: str | None = None
+    yes_bid_dollars: float | None = None
+    yes_ask_dollars: float | None = None
+    last_price_dollars: float | None = None
+    previous_price_dollars: float | None = None
+    volume_24h_fp: float | None = None
+    open_interest_fp: float | None = None
+    close_time: datetime | None = None
+
+
+class SeriesMarketsResponse(BaseModel):
+    series_ticker: str
+    market_count: int
+    markets: list[MarketRow]

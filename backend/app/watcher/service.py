@@ -118,7 +118,7 @@ class WatcherService:
                         select id from ingestion_runs
                         order by completed_at desc nulls last limit 1
                     )
-                    and m.status = 'open'
+                    and m.status in ('active', 'open')
                     order by sr.rank, m.volume_24h_fp desc nulls last
                     limit :top_k
                     """
@@ -146,7 +146,6 @@ class WatcherService:
                             m = resp.market
                             live_map[t] = {
                                 "ticker": t,
-                                "series_ticker": m.series_ticker if hasattr(m, "series_ticker") else None,
                                 "last_price_dollars": _safe_float(getattr(m, "last_price_dollars", None)),
                                 "yes_bid_dollars": _safe_float(getattr(m, "yes_bid_dollars", None)),
                                 "yes_ask_dollars": _safe_float(getattr(m, "yes_ask_dollars", None)),
@@ -158,12 +157,12 @@ class WatcherService:
 
                 await asyncio.gather(*[_fetch_one(t) for t in ticker_list])
 
-            # Merge: prefer live data, fall back to DB row
+            # Merge: prefer live data, fall back to DB row (series_ticker always comes from DB)
             merged: list[dict[str, Any]] = []
             for row in db_tickers:
                 t = row["ticker"]
                 if t in live_map:
-                    merged.append(live_map[t])
+                    merged.append({**live_map[t], "series_ticker": row["series_ticker"]})
                 else:
                     row_copy = dict(row)
                     row_copy["last_price_dollars"] = _safe_float(row_copy.get("last_price_dollars"))
