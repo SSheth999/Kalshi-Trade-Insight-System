@@ -1,5 +1,6 @@
 import type {
   CandlesticksResponse,
+  EventMarketsResponse,
   IngestRequest,
   IngestResponse,
   LatestIngestResponse,
@@ -74,4 +75,8 @@ export function getMarketCandlesticks(
   return request(
     `/api/v1/markets/${encodeURIComponent(ticker)}/candlesticks?period_interval=${periodInterval}&lookback_minutes=${lookbackMinutes}`
   );
+}
+
+export function getMarketEvent(ticker: string): Promise<EventMarketsResponse> {
+  return request(`/api/v1/markets/${encodeURIComponent(ticker)}/event`);
 }

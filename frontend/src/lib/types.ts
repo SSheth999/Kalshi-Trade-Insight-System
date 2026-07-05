@@ -158,3 +158,15 @@ export interface MarketChartTick {
   yes_bid: number | null;
   yes_ask: number | null;
 }
+
+export interface EventOutcomeRow extends MarketRow {
+  outcome_label: string;
+}
+
+export interface EventMarketsResponse {
+  event_ticker: string;
+  title: string | null;
+  series_ticker: string | null;
+  outcome_count: number;
+  outcomes: EventOutcomeRow[];
+}

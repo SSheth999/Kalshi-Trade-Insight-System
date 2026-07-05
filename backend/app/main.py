@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes.market_chart import router as market_chart_router
+from app.api.routes.market_event import router as market_event_router
 from app.api.routes.pipeline import router as pipeline_router
 from app.api.routes.series import router as series_router
 from app.api.routes.watcher import router as watcher_router
@@ -87,6 +88,7 @@ app.include_router(pipeline_router, prefix="/api/v1", tags=["pipeline"])
 app.include_router(watcher_router, prefix="/api/v1", tags=["watcher"])
 app.include_router(series_router, prefix="/api/v1", tags=["series"])
 app.include_router(market_chart_router, prefix="/api/v1", tags=["market-chart"])
+app.include_router(market_event_router, prefix="/api/v1", tags=["market-event"])
 
 
 @app.get("/health")

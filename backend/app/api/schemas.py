@@ -118,3 +118,15 @@ class SeriesMarketsResponse(BaseModel):
     series_ticker: str
     market_count: int
     markets: list[MarketRow]
+
+
+class EventOutcomeRow(MarketRow):
+    outcome_label: str
+
+
+class EventMarketsResponse(BaseModel):
+    event_ticker: str
+    title: str | None
+    series_ticker: str | None
+    outcome_count: int
+    outcomes: list[EventOutcomeRow]
