@@ -112,6 +112,7 @@ class MarketRow(BaseModel):
     volume_24h_fp: float | None = None
     open_interest_fp: float | None = None
     close_time: datetime | None = None
+    outcome_count: int = 1
 
 
 class SeriesMarketsResponse(BaseModel):

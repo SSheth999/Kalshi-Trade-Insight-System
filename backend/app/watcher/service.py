@@ -109,17 +109,29 @@ class WatcherService:
             rows = session.execute(
                 text(
                     """
-                    select m.ticker, m.series_ticker,
-                           m.last_price_dollars, m.yes_bid_dollars, m.yes_ask_dollars,
-                           m.volume_24h_fp, m.open_interest_fp
-                    from markets m
-                    join series_rankings sr on sr.series_ticker = m.series_ticker
-                    where sr.run_id = (
-                        select id from ingestion_runs
-                        order by completed_at desc nulls last limit 1
+                    with ranked_outcomes as (
+                        select m.ticker, m.series_ticker,
+                               m.last_price_dollars, m.yes_bid_dollars, m.yes_ask_dollars,
+                               m.volume_24h_fp, m.open_interest_fp,
+                               sr.rank as series_rank,
+                               row_number() over (
+                                   partition by coalesce(m.event_ticker, m.ticker)
+                                   order by m.volume_24h_fp desc nulls last
+                               ) as outcome_rn
+                        from markets m
+                        join series_rankings sr on sr.series_ticker = m.series_ticker
+                        where sr.run_id = (
+                            select id from ingestion_runs
+                            order by completed_at desc nulls last limit 1
+                        )
+                        and m.status in ('active', 'open')
                     )
-                    and m.status in ('active', 'open')
-                    order by sr.rank, m.volume_24h_fp desc nulls last
+                    select ticker, series_ticker,
+                           last_price_dollars, yes_bid_dollars, yes_ask_dollars,
+                           volume_24h_fp, open_interest_fp
+                    from ranked_outcomes
+                    where outcome_rn = 1
+                    order by series_rank, volume_24h_fp desc nulls last
                     limit :top_k
                     """
                 ),

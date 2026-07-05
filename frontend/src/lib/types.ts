@@ -97,6 +97,7 @@ export interface MarketRow {
   volume_24h_fp: number | null;
   open_interest_fp: number | null;
   close_time: string | null;
+  outcome_count?: number;
 }
 
 export interface SeriesMarketsResponse {

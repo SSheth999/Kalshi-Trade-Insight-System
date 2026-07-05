@@ -116,7 +116,12 @@ export function SeriesMarketsDialog({
                         {m.title ?? m.ticker}
                       </div>
                       <div className="metric-sm text-muted-foreground">
-                        {m.ticker}
+                        {m.event_ticker ?? m.ticker}
+                        {(m.outcome_count ?? 1) > 1 && (
+                          <span className="ml-1.5 text-muted-foreground/60">
+                            · {m.outcome_count} outcomes
+                          </span>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell className="text-right metric">
